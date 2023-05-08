@@ -1,0 +1,35 @@
+!pip install pyntcloud
+!pip install pyntcloud laspy
+!pip install laspy==2.0.2
+
+import pandas as pd
+from pyntcloud import PyntCloud
+import laspy
+
+
+input_file = 'xyz Batimetria 221213 y Vuelo 2021 DBR_1x1.asc'  # Replace with your ASC file name
+output_file = 'output_file.las'  # Choose an output file name
+
+# Read the ASC file into a pandas DataFrame
+data = pd.read_csv(input_file, sep=" ", names=["x", "y", "z"], comment="!")
+
+# Create a PyntCloud from the DataFrame
+cloud = PyntCloud(data)
+
+# Create a new LAS data with the appropriate point format
+las_data = laspy.create(point_format=3)
+
+# Set the scale and offset
+las_data.header.scale = [0.01, 0.01, 0.01]
+las_data.header.offset = [min(cloud.points["x"].values), min(cloud.points["y"].values), min(cloud.points["z"].values)]
+
+# Create and assign the point data
+point_count = len(cloud.points)
+las_data.points.resize(point_count)
+
+las_data.points['X'] = (cloud.points["x"] * las_data.header.scale[0]).astype("int32")
+las_data.points['Y'] = (cloud.points["y"] * las_data.header.scale[1]).astype("int32")
+las_data.points['Z'] = (cloud.points["z"] * las_data.header.scale[2]).astype("int32")
+
+# Write the LAS file
+las_data.write(output_file)
